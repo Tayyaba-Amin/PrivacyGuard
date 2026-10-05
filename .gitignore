@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# Secrets. Only .env.example is committed.
+.env
+.env.*
+!.env.example
+
+# Archived pre-foundation implementation (see .legacy-backup/RESTORE.md)
+.legacy-backup/
+
+# TLS material and local scratch space
+*.pem
+*.key
+*.p12
+*.pfx
+tmp/
+uploads/
+coverage/
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

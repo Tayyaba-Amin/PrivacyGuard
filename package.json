@@ -1,0 +1,31 @@
+{
+  "name": "privacyguard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PrivacyGuard - detect, explain and remove sensitive information before sharing it.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c cyan,magenta \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "npm run dev -w @privacyguard/server",
+    "dev:web": "npm run dev -w @privacyguard/web",
+    "build": "npm run build -w @privacyguard/server && npm run build -w @privacyguard/web",
+    "typecheck": "npm run typecheck -w @privacyguard/server && npm run typecheck -w @privacyguard/web",
+    "test": "npm run test -w @privacyguard/server",
+    "start": "npm run start -w @privacyguard/server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "jimp": "^1.6.1",
+    "tesseract.js": "^7.0.0"
+  }
+}

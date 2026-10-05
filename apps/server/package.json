@@ -1,0 +1,26 @@
+{
+  "name": "@privacyguard/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "node --import tsx --test src/detection/detect.test.ts src/routes/analyze.test.ts src/routes/analyze-image.test.ts src/routes/analyze-ai.test.ts src/ai/contextual.test.ts src/ai/featherless.test.ts src/risk/score.test.ts src/protection/redact.test.ts src/routes/protect.test.ts src/routes/protect-image.test.ts src/routes/rescan.test.ts src/routes/rescan-image.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
