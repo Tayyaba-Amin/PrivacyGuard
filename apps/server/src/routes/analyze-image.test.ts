@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import type { Server } from 'node:http';
 import { after, before, describe, it } from 'node:test';
 import { createApp } from '../app.js';
+import { cleanupWorkers } from '../image/index.js';
 import type { AnalyzeImageResponse } from '../api/types.js';
 import { FINDING_CATEGORIES, SEVERITIES } from '../detection/types.js';
 import { RISK_LEVELS, SEVERITY_WEIGHTS, SHARING_VERDICTS } from '../risk/index.js';
@@ -35,6 +36,7 @@ before(async () => {
 
 after(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
+  await cleanupWorkers();
 });
 
 describe('GET /api/health', () => {
@@ -138,15 +140,16 @@ describe('POST /api/analyze/image', () => {
     }
   });
 
-  it('scores an empty result as 0 / LOW / SAFE_TO_SHARE', async () => {
+  it('requires review when OCR finds no readable text instead of calling the image safe', async () => {
     const response = await postImage({ image: TEST_IMAGE_BASE64 });
     const body = (await response.json()) as AnalyzeImageResponse;
 
-    // Minimal test image has no text, so should be safe
     if (body.findings.length === 0) {
       assert.equal(body.risk.score, 0);
       assert.equal(body.risk.level, 'LOW');
-      assert.equal(body.risk.verdict, 'SAFE_TO_SHARE');
+      assert.equal(body.meta.image.charactersExtracted, 0);
+      assert.equal(body.risk.verdict, 'REVIEW_BEFORE_SHARING');
+      assert.match(body.risk.explanation, /could not be checked/);
       assert.deepEqual(body.risk.factors, []);
     }
   });

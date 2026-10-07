@@ -229,13 +229,13 @@ async function handleAnalyzeImage(
     const response: AnalyzeImageResponse = {
       findings: [],
       meta: emptyMeta,
-      summary: 'No text was detected in the image.',
+      summary: 'OCR did not detect readable text. Review the image manually before sharing.',
       risk: {
         score: 0,
         level: 'LOW',
-        verdict: 'SAFE_TO_SHARE',
-        explanation: 'No text was detected in the image, so no sensitive patterns could be matched.',
-        caveat: 'Initial assessment of the image as submitted, before any redaction. It is not a guarantee that the content is safe to share.',
+        verdict: 'REVIEW_BEFORE_SHARING',
+        explanation: 'OCR did not detect readable text, so the image could not be checked for sensitive patterns.',
+        caveat: 'A zero score here means no text was analyzed, not that the image is safe to share.',
         factors: [],
         severityBasis: { deterministic: 0, contextual: 0 },
       },

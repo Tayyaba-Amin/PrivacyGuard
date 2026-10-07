@@ -51,7 +51,7 @@ export async function extractTextFromImage(
   const dataUrl = await imageBufferToDataUrl(buffer, mimeType);
 
   // Recognize text
-  const { data } = await worker.recognize(dataUrl);
+  const { data } = await worker.recognize(dataUrl, {}, { blocks: true });
 
   // Extract words with bounding boxes
   const words: OcrWord[] = [];

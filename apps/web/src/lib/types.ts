@@ -13,7 +13,16 @@ export { RISK_FACTOR_PREVIEW } from './findings';
 export type InputMode = 'text' | 'image';
 
 /** Top-level screen the application is showing. */
-export type AppView = 'dashboard' | 'text' | 'image';
+export type AppView =
+  | 'landing'
+  | 'dashboard'
+  | 'text'
+  | 'image'
+  | 'text-results'
+  | 'image-results'
+  | 'protected'
+  | 'rescan'
+  | 'history';
 
 /** Where the analyzer currently is in the flow. */
 export type AnalysisState = 'idle' | 'analyzing' | 'complete';

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import type { Server } from 'node:http';
 import { after, before, describe, it } from 'node:test';
 import { createApp } from '../app.js';
+import { cleanupWorkers } from '../image/index.js';
 import type { ProtectImageResponse } from '../api/types.js';
 import fs from 'node:fs';
 
@@ -32,6 +33,7 @@ before(async () => {
 
 after(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
+  await cleanupWorkers();
 });
 
 describe('POST /api/protect/image', () => {

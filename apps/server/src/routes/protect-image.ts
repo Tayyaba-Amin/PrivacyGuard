@@ -195,6 +195,15 @@ async function handleProtectImage(req: Request, res: Response): Promise<void> {
   // Protect the image using findings and OCR word data
   try {
     const result = await protectImage(buffer, mimeType, findings, ocrResult.words, format);
+    if (result.redactionCount !== findings.length) {
+      res.status(422).json({
+        error: {
+          code: 'protection_incomplete',
+          message: 'Could not reliably locate every sensitive area. Upload a clearer image or remove the sensitive information manually before sharing.',
+        },
+      });
+      return;
+    }
     res.status(200).json(result);
   } catch {
     res.status(500).json({

@@ -8,7 +8,7 @@
     "dev": "tsx watch --clear-screen=false src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "test": "node --import tsx --test src/detection/detect.test.ts src/routes/analyze.test.ts src/routes/analyze-image.test.ts src/routes/analyze-ai.test.ts src/ai/contextual.test.ts src/ai/featherless.test.ts src/risk/score.test.ts src/protection/redact.test.ts src/routes/protect.test.ts src/routes/protect-image.test.ts src/routes/rescan.test.ts src/routes/rescan-image.test.ts",
+    "test": "node --import tsx --test src/detection/detect.test.ts src/routes/analyze.test.ts src/routes/analyze-image.test.ts src/routes/analyze-ai.test.ts src/ai/contextual.test.ts src/ai/featherless.test.ts src/risk/score.test.ts src/protection/redact.test.ts src/image/ocr.test.ts src/image/protect.test.ts src/routes/protect.test.ts src/routes/protect-image.test.ts src/routes/rescan.test.ts src/routes/rescan-image.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

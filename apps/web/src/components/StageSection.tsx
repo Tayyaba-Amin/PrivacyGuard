@@ -42,5 +42,5 @@ export function StageSection({
 function statusLabel(status: StageSectionProps['status']): string {
   if (status === 'done') return 'Complete';
   if (status === 'active') return 'In progress';
-  return 'Not started';
+  return 'Ready when you are';
 }

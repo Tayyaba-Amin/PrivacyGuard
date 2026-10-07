@@ -21,13 +21,96 @@ length of a request and then discarded.
 | Image guidance           | Shows plain-language guidance for manually removing or obscuring detected sensitive areas. |
 | Rescan after protection  | Re-analyzes the protected text or image to check that nothing recognisable remains.        |
 | Final verdict            | A post-protection safe-to-share verdict backed by the rescan.                              |
+| Session history          | Shows recent scan metadata in memory; submitted content is never saved.                   |
 | Light/dark theme         | Follows the system preference on first visit, remembers a manual choice.                   |
 
 **Detected categories:** email addresses, phone numbers, credit cards, IP addresses, URLs, API keys,
 JWTs, private keys, credential pairs (username + password) and postal addresses.
 
 The AI layer can only add context to findings the detector already produced. It can never add a
-finding or change a location.
+finding or change a location. If OCR extracts no readable text from an image, PrivacyGuard asks you
+to review it instead of treating an empty result as safe.
+
+## Architecture
+
+The React client uses the Express API for analysis, protection and rescanning. In development, Vite
+proxies `/api` requests to the API; the built Express app can serve the static frontend from
+`apps/web/dist`. The API keeps request data in memory and does not use a database. For images, OCR
+extracts text before it enters the same detection and risk pipeline. Featherless AI is an optional
+context provider; it cannot create findings or change detector locations.
+
+```mermaid
+flowchart LR
+    user[User]
+    web[React and TypeScript UI]
+    vite[Vite dev server and API proxy]
+    api[Express API]
+
+    subgraph processing[In-memory processing]
+        ocr[Tesseract.js OCR]
+        detect[Deterministic detectors]
+        risk[Risk scoring and verdict]
+        protect[Text redaction and image protection]
+    end
+
+    ai[Optional Featherless AI context]
+
+    user --> web
+    web -->|Development| vite
+    vite -->|/api| api
+    web -->|Production API requests| api
+    api --> ocr
+    api --> detect
+    detect --> risk
+    detect --> protect
+    detect -. Existing findings only .-> ai
+    ai -. Context only .-> risk
+    protect -->|Protected content can be rescanned| api
+```
+
+## Screenshots
+
+These screenshots are from `docs/screenshots/`. Use synthetic demo content only. The image workflow
+intentionally shows its own guidance and rescan verdict; image protection does not guarantee that
+sensitive text has been removed.
+
+### Landing page
+
+![PrivacyGuard landing page](./docs/screenshots/landing.jpeg)
+
+### Dashboard
+
+![PrivacyGuard dashboard](./docs/screenshots/dashboard.jpeg)
+
+### Text analysis
+
+![Text analysis input page](./docs/screenshots/text-analysis.jpeg)
+
+### Image analysis
+
+![Image analysis input page](./docs/screenshots/image-analysis.jpeg)
+
+### Text analysis results
+
+![Text analysis results page](./docs/screenshots/text-result.jpeg)
+
+### Image analysis results
+
+![Image analysis result with no findings](./docs/screenshots/image-result.jpeg)
+
+![Image analysis result with sensitive findings](./docs/screenshots/image-result.png)
+
+### Protected text copy
+
+![Protected text copy page](./docs/screenshots/protected-copy.jpeg)
+
+### Protected image review
+
+![Protected image review page](./docs/screenshots/image-protected.png)
+
+### History
+
+![History page](./docs/screenshots/history.jpeg)
 
 ## How It Works
 
@@ -146,7 +229,7 @@ SDK. No Anthropic or OpenAI SDK is used anywhere in this project.
 ```
 apps/
   web/                     Frontend (React + TypeScript + Vite)
-    src/App.tsx            View state: dashboard, text, image
+    src/App.tsx            Separate dashboard, text/image, results, protected-copy, verdict and history screens
     src/components/        Dashboard, header, footer, stage panels, risk and verdict panels
     src/lib/               API client, display mapping, masking, theme
   server/                  Backend API (Express, TypeScript, ESM)
@@ -224,8 +307,8 @@ Other scripts:
 | `npm test`                               | Run the backend test suite                           |
 | `npm start`                              | Run the built API server (run `npm run build` first) |
 
-The backend does not serve the frontend build, so use `npm run dev:web` (or any static server) to
-view a production build locally.
+For local development, use `npm run dev:web` (or `npm run dev` to start both apps). To serve the
+production frontend from the API, run `npm run build` before `npm start`.
 
 Check the API is up with `GET /api/health`.
 
@@ -335,8 +418,8 @@ Other tokens follow the same pattern, for example `[REDACTED_API_KEY]`, `[REDACT
 
 For a quick demonstration:
 
-1. Open PrivacyGuard (the dashboard loads first).
-2. Choose **Text Analysis**.
+1. Open PrivacyGuard and select **Get started** to enter the workspace.
+2. From the dashboard, choose **Text Analysis**.
 3. Paste a sample containing sensitive data, for example
    `Contact me at alice@example.com or 0300-1234567. My API key is [YOUR_API_KEY].`
 4. Click **Analyze for Privacy Risks**.
@@ -348,7 +431,10 @@ For a quick demonstration:
 10. Optionally repeat with **Image Analysis** using a screenshot containing an email or phone number to
     demonstrate OCR and image guidance.
 
-Use the header navigation (`Home`, `Text`, `Image`) and the theme toggle to move between views.
+Use the workspace sidebar to move between the dashboard, text analysis, image analysis and History.
+History contains up to 20 recent scans from the current app session. It stores only scan type, time,
+result counts and status in memory; entries clear when the app is reloaded or closed. Use the theme
+toggle to switch between light and dark appearance.
 
 ## Important Notes
 
