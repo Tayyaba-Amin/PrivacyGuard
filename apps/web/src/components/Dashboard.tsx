@@ -1,8 +1,19 @@
 import type { ReactNode } from 'react';
 import type { AppView } from '../lib/types';
+import { Icon } from './Icon';
 
 type DashboardProps = {
   onNavigate: (view: AppView) => void;
+  activity: DashboardActivity[];
+};
+
+export type DashboardActivity = {
+  id: string;
+  type: 'text' | 'image';
+  findingCount: number;
+  at: string;
+  status: 'safe' | 'review' | 'attention';
+  charactersAnalyzed: number;
 };
 
 type ActionCard = {
@@ -47,60 +58,30 @@ const CARDS: ActionCard[] = [
   },
 ];
 
-const WORKFLOW: { step: string; title: string; description: string }[] = [
-  {
-    step: '1',
-    title: 'Analyze',
-    description:
-      'Your content is scanned by a deterministic pattern engine for emails, phone numbers, credentials, API keys, URLs, addresses and more.',
-  },
-  {
-    step: '2',
-    title: 'Assess Risk',
-    description:
-      'The findings are scored into a 0–100 risk assessment, with the severity and weight of each detection shown.',
-  },
-  {
-    step: '3',
-    title: 'Protect',
-    description:
-      'Detected spans are replaced with category placeholders, and sensitive regions of an image are covered.',
-  },
-  {
-    step: '4',
-    title: 'Rescan',
-    description:
-      'The protected content is analysed again to verify that nothing recognisable is still there.',
-  },
-  {
-    step: '5',
-    title: 'Get Final Verdict',
-    description:
-      'You get a clear safe-to-share verdict backed by the rescan, not by the original content.',
-  },
-];
-
-export function Dashboard({ onNavigate }: DashboardProps) {
+export function Dashboard({ onNavigate, activity }: DashboardProps) {
   return (
-    <>
-      <section className="hero" aria-labelledby="hero-title">
-        <p className="hero__eyebrow">Sensitive data detection</p>
-        <h1 className="hero__title" id="hero-title">
-          Detect sensitive information before you share it.
-        </h1>
-        <p className="hero__lead">
-          Scan text or an image for emails, phone numbers, credentials, API keys, URLs and addresses.
-          PrivacyGuard explains what each finding means, redacts it, and verifies the protected result
-          before anything leaves your hands.
-        </p>
+    <div className="dashboard">
+      <section className="dashboard__welcome">
+        <div>
+          <p className="hero__eyebrow">Private by design</p>
+          <h2 className="dashboard__title">Welcome to PrivacyGuard</h2>
+          <p className="dashboard__lead">
+            Keep your information private and share with confidence. Choose what you want to check.
+          </p>
+        </div>
+        <span className="dashboard__shield" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path d="M12 3 5 6v5.5c0 4.4 2.9 8.3 7 9.5 4.1-1.2 7-5.1 7-9.5V6l-7-3Z" strokeLinejoin="round" />
+            <path d="m9.5 12.2 1.8 1.8 3.4-3.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
       </section>
-
       <section className="actions" aria-labelledby="actions-title">
         <div className="section-head">
           <h2 className="section-head__title" id="actions-title">
-            Choose what to analyze
+            Start a privacy check
           </h2>
-          <p className="section-head__hint">Both options run the same five-step flow.</p>
+          <p className="section-head__hint">Each check guides you from detection to a final verdict.</p>
         </div>
 
         <div className="actions__grid">
@@ -139,49 +120,71 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         </div>
       </section>
 
-      <section className="panel" aria-labelledby="workflow-title">
-        <div className="section-head">
-          <h2 className="section-head__title" id="workflow-title">
-            How it works
-          </h2>
-          <p className="section-head__hint">
-            PrivacyGuard identifies sensitive information, calculates a risk assessment, redacts what it
-            found, and verifies the protected result.
-          </p>
+      <section className="dashboard__lower">
+        <div className="dashboard__activity panel">
+          <div className="section-head">
+            <h2 className="section-head__title">Recent activity</h2>
+            <span className="dashboard__session-label">This session</span>
+          </div>
+          {activity.length > 0 ? (
+            <ul className="dashboard__activity-list">
+              {activity.slice(0, 5).map((entry) => (
+                <li className="dashboard__activity-row" key={entry.id}>
+                  <span className="dashboard__empty-icon"><Icon name={entry.type} size={18} /></span>
+                  <span className="dashboard__activity-copy">
+                    <strong>{entry.type === 'text' ? 'Text Analysis' : 'Image Analysis'}</strong>
+                    <span>
+                      {activityDescription(entry)}
+                    </span>
+                  </span>
+                  <time className="dashboard__activity-time" dateTime={entry.at}>
+                    {new Date(entry.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                  </time>
+                  <span className={`dashboard__complete dashboard__complete--${entry.status}`}>
+                    {activityStatus(entry.status)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="dashboard__empty">
+              <span className="dashboard__empty-icon"><Icon name="arrow" size={18} /></span>
+              <p>No checks in this session yet.</p>
+              <span>Recent activity is kept in memory only.</span>
+            </div>
+          )}
         </div>
-
-        <ol className="workflow">
-          {WORKFLOW.map((item) => (
-            <li key={item.step} className="workflow__step">
-              <span className="workflow__marker" aria-hidden="true">
-                {item.step}
-              </span>
-              <span className="workflow__body">
-                <span className="workflow__title">{item.title}</span>
-                <span className="workflow__description">{item.description}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="trust" aria-labelledby="trust-title">
-        <span className="trust__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7">
-            <path d="M12 3.5 5.8 6v5.2c0 4.1 2.6 7.7 6.2 8.9 3.6-1.2 6.2-4.8 6.2-8.9V6L12 3.5Z" strokeLinejoin="round" />
-            <path d="m9.8 11.9 1.6 1.6 3-3.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
-        <span className="trust__body">
-          <span className="trust__title" id="trust-title">
-            Your content is processed in memory and is not persistently stored.
+        <div className="trust" aria-labelledby="trust-title">
+          <span className="trust__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7">
+              <path d="M12 3.5 5.8 6v5.2c0 4.1 2.6 7.7 6.2 8.9 3.6-1.2 6.2-4.8 6.2-8.9V6L12 3.5Z" strokeLinejoin="round" />
+              <path d="m9.8 11.9 1.6 1.6 3-3.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </span>
-          <span className="trust__description">
-            Detection is pattern-based and deterministic: it reports only what it recognises, so review
-            content yourself before sharing it.
+          <span className="trust__body">
+            <span className="trust__title" id="trust-title">
+              Your content is processed in memory.
+            </span>
+            <span className="trust__description">
+              Your scans are not persistently stored. Review every result before sharing.
+            </span>
           </span>
-        </span>
+        </div>
       </section>
-    </>
+    </div>
   );
+}
+
+export function activityDescription(entry: DashboardActivity): string {
+  if (entry.type === 'image' && entry.charactersAnalyzed === 0) {
+    return 'No readable text detected; review the image manually';
+  }
+  if (entry.findingCount === 0) return 'No sensitive items found';
+  return `${entry.findingCount} sensitive ${entry.findingCount === 1 ? 'item' : 'items'} found`;
+}
+
+export function activityStatus(status: DashboardActivity['status']): string {
+  if (status === 'safe') return 'No findings';
+  if (status === 'attention') return 'Needs attention';
+  return 'Review';
 }

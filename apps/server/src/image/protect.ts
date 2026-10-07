@@ -26,23 +26,61 @@ function findBoundingBoxForFinding(
   const matchedText = finding.matchedText.trim();
   if (!matchedText) return null;
 
-  // Try to find the text in the OCR words
-  // We'll look for a sequence of words that contains the matched text
   const wordsText = ocrWords.map((w) => w.text).join(' ');
-  const index = wordsText.indexOf(matchedText);
-
-  if (index === -1) {
-    // Try case-insensitive
-    const lowerWordsText = wordsText.toLowerCase();
-    const lowerMatched = matchedText.toLowerCase();
-    const lowerIndex = lowerWordsText.indexOf(lowerMatched);
-    if (lowerIndex === -1) return null;
-
-    // Find which words cover this range
-    return findBboxFromCharOffset(ocrWords, lowerIndex, lowerIndex + matchedText.length);
+  const spacedIndex = findTextIndex(wordsText, matchedText);
+  if (spacedIndex !== -1) {
+    return findBboxFromCharOffset(ocrWords, spacedIndex, spacedIndex + matchedText.length, 1);
   }
 
-  return findBboxFromCharOffset(ocrWords, index, index + matchedText.length);
+  // OCR can split punctuation-heavy values (especially email addresses) into
+  // separate words even though the detector matched the original text intact.
+  const compactWords = ocrWords.map((word) => word.text).join('');
+  const compactMatch = matchedText.replace(/\s+/g, '');
+  const compactIndex = findTextIndex(compactWords, compactMatch);
+  if (compactIndex !== -1) {
+    return findBboxFromCharOffset(ocrWords, compactIndex, compactIndex + compactMatch.length, 0);
+  }
+
+  if (finding.category === 'PHONE_NUMBER') {
+    return findPhoneBoundingBox(matchedText, ocrWords);
+  }
+
+  return null;
+}
+
+function findTextIndex(text: string, target: string): number {
+  const exactIndex = text.indexOf(target);
+  if (exactIndex !== -1) return exactIndex;
+  return text.toLowerCase().indexOf(target.toLowerCase());
+}
+
+function findPhoneBoundingBox(
+  matchedText: string,
+  ocrWords: { text: string; bbox: BoundingBox }[]
+): BoundingBox | null {
+  const phoneDigits = matchedText.replace(/\D/g, '');
+  if (!phoneDigits) return null;
+
+  const digitWordIndices: number[] = [];
+  let ocrDigits = '';
+
+  ocrWords.forEach((word, wordIndex) => {
+    for (const character of word.text) {
+      if (/\d/.test(character)) {
+        ocrDigits += character;
+        digitWordIndices.push(wordIndex);
+      }
+    }
+  });
+
+  const start = ocrDigits.indexOf(phoneDigits);
+  if (start === -1) return null;
+
+  const startWordIndex = digitWordIndices[start];
+  const endWordIndex = digitWordIndices[start + phoneDigits.length - 1];
+  if (startWordIndex === undefined || endWordIndex === undefined) return null;
+
+  return findBboxFromWordRange(ocrWords, startWordIndex, endWordIndex);
 }
 
 /**
@@ -51,7 +89,8 @@ function findBoundingBoxForFinding(
 function findBboxFromCharOffset(
   ocrWords: { text: string; bbox: BoundingBox }[],
   startChar: number,
-  endChar: number
+  endChar: number,
+  separatorLength: number
 ): BoundingBox | null {
   let charPos = 0;
   let startWordIndex = -1;
@@ -69,13 +108,21 @@ function findBboxFromCharOffset(
       endWordIndex = i;
     }
 
-    charPos = wordEnd + 1; // +1 for the space we added
+    charPos = wordEnd + separatorLength;
 
     if (startWordIndex !== -1 && endWordIndex !== -1) break;
   }
 
   if (startWordIndex === -1 || endWordIndex === -1) return null;
 
+  return findBboxFromWordRange(ocrWords, startWordIndex, endWordIndex);
+}
+
+function findBboxFromWordRange(
+  ocrWords: { text: string; bbox: BoundingBox }[],
+  startWordIndex: number,
+  endWordIndex: number
+): BoundingBox | null {
   // Calculate combined bounding box
   let minX = Infinity;
   let minY = Infinity;
@@ -113,7 +160,7 @@ export async function protectImage(
   mimeType: string,
   findings: ImageFinding[],
   ocrWords: { text: string; bbox: BoundingBox }[],
-  format: ImageFormat
+  _format: ImageFormat
 ): Promise<ImageProtectionResult> {
   const image = await Jimp.read(imageBuffer);
 
@@ -153,7 +200,7 @@ export async function protectImage(
   }
 
   // Convert back to buffer
-  const formatMime = mimeType === 'image/png' ? 'image/png' : mimeType === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+  const formatMime = mimeType === 'image/jpeg' ? 'image/jpeg' : 'image/png';
   const protectedBuffer = await image.getBase64(formatMime);
 
   // Extract base64 data (remove data URL prefix)
@@ -165,7 +212,7 @@ export async function protectImage(
   const meta: ProtectedImageMeta = {
     width: image.bitmap.width,
     height: image.bitmap.height,
-    format,
+    format: formatMime === 'image/jpeg' ? 'jpeg' : 'png',
     redactionCount: redactions.length,
     redactedCategories,
   };

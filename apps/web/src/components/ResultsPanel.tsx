@@ -4,6 +4,7 @@ import type { FindingSeverity } from '../lib/findings';
 import { TechnicalDetails } from './TechnicalDetails';
 
 type ResultsPanelProps = {
+  screen: 'results' | 'protected' | 'rescan';
   analysis: TextAnalysis;
   sourceLabel: string;
   protectionState: ProtectionState;
@@ -14,6 +15,7 @@ type ResultsPanelProps = {
   onRescan: () => void;
   canRescan: boolean;
   protectedText: string | null;
+  protectedImagePreviewUrl: string | null;
   mode: 'text' | 'image';
 };
 
@@ -42,6 +44,9 @@ const IMAGE_ACTIONS: Record<string, string> = {
 };
 
 function getWhatToDo(verdict: string, findingsCount: number): string {
+  if (verdict === 'REVIEW_BEFORE_SHARING' && findingsCount === 0) {
+    return 'PrivacyGuard could not verify this image. Improve the image quality or review it manually before sharing.';
+  }
   if (findingsCount === 0) {
     return 'No sensitive information was detected. You can share this version if it looks right to you.';
   }
@@ -85,6 +90,7 @@ function getImageGuidance(findings: { category: string }[]): string[] {
 }
 
 export function ResultsPanel({
+  screen,
   analysis,
   sourceLabel,
   protectionState,
@@ -95,6 +101,7 @@ export function ResultsPanel({
   onRescan,
   canRescan,
   protectedText,
+  protectedImagePreviewUrl,
   mode,
 }: ResultsPanelProps) {
   const { findings, risk } = analysis;
@@ -103,9 +110,18 @@ export function ResultsPanel({
   const showRescanResult = rescanState === 'complete' && rescanRisk !== null;
   const isImage = mode === 'image';
 
-  const riskLabel = nothingFound ? 'Safe to Share' : 'Not Safe to Share';
-  const resultSentence = nothingFound
-    ? 'No sensitive information was found.'
+  const imageNeedsOcrReview = isImage && analysis.charactersAnalyzed === 0;
+  const rescanNeedsOcrReview =
+    rescanRisk?.verdict === 'REVIEW_BEFORE_SHARING' && rescanRisk.factors.length === 0;
+  const riskLabel = nothingFound
+    ? imageNeedsOcrReview || risk.verdict === 'REVIEW_BEFORE_SHARING'
+      ? 'Review Before Sharing'
+      : 'Safe to Share'
+    : 'Not Safe to Share';
+  const resultSentence = imageNeedsOcrReview
+    ? 'No readable text was detected in this image.'
+    : nothingFound
+      ? 'No sensitive information was found.'
     : `${findings.length} sensitive ${plural(findings.length, 'item', 'items')} found`;
   const whatToDo = getWhatToDo(risk.verdict, findings.length);
 
@@ -114,70 +130,83 @@ export function ResultsPanel({
 
   return (
     <div className="results">
-      <div className={`result-card result-card--${risk.level}`}>
-        <h2 className="result-card__label">{riskLabel}</h2>
-        <p className="result-card__score">
-          {risk.score} <span className="result-card__out">/ 100</span>
-        </p>
-        <p className="result-card__sentence">{resultSentence}</p>
-        <p className="result-card__next">{whatToDo}</p>
-      </div>
+      {screen === 'results' && (
+        <>
+          <div className={`result-card result-card--${imageNeedsOcrReview ? 'medium' : risk.level}`}>
+            <h2 className="result-card__label">{riskLabel}</h2>
+            <p className="result-card__score">
+              {imageNeedsOcrReview ? '—' : risk.score} <span className="result-card__out">/ 100</span>
+            </p>
+            <p className="result-card__sentence">{resultSentence}</p>
+            <p className="result-card__next">{whatToDo}</p>
+          </div>
 
-      {!nothingFound && (
-        <div className="findings findings--compact">
-          <h3 className="block__title">What we found</h3>
-          <ul className="findings__rows">
-            {findings.map((finding) => (
-              <li key={finding.id} className={`finding-card finding-card--${finding.severity}`}>
-                <div className="finding-card__head">
-                  <span className={`severity severity--${finding.severity}`}>
-                    {SEVERITY_NAME[finding.severity]}
-                  </span>
-                  <span className="finding-card__label">{finding.label}</span>
-                </div>
-                <p className="finding-card__why">{finding.why}</p>
-                <p className="finding-card__action">
-                  <strong>What to do:</strong> {finding.contextual.recommendation}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </div>
+          {imageNeedsOcrReview && (
+            <div className="what-to-do" role="status">
+              <p className="what-to-do__title">PrivacyGuard could not verify this image.</p>
+              <p>
+                OCR extracted no readable text, so a zero finding count does not mean the image is
+                safe. Try a sharper, well-lit image with text upright and in focus, or review it manually.
+              </p>
+            </div>
+          )}
+
+          {!nothingFound && (
+            <div className="findings findings--compact">
+              <h3 className="block__title">What we found</h3>
+              <ul className="findings__rows">
+                {findings.map((finding) => (
+                  <li key={finding.id} className={`finding-card finding-card--${finding.severity}`}>
+                    <div className="finding-card__head">
+                      <span className={`severity severity--${finding.severity}`}>
+                        {SEVERITY_NAME[finding.severity]}
+                      </span>
+                      <span className="finding-card__label">{finding.label}</span>
+                    </div>
+                    <p className="finding-card__why">{finding.why}</p>
+                    <p className="finding-card__action">
+                      <strong>What to do:</strong> {finding.contextual.recommendation}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {showTextProtect && (
+            <div className="result-action">
+              <button
+                type="button"
+                className="button button--primary button--lg"
+                onClick={onProtect}
+                disabled={protectBusy}
+              >
+                {protectBusy ? 'Protecting…' : 'Create Protected Copy'}
+              </button>
+              <p className="result-action__support">
+                Replace the detected sensitive information with safe placeholders while keeping the rest
+                of your text readable.
+              </p>
+            </div>
+          )}
+
+          {showImageGuidance && (
+            <div className="what-to-do">
+              <p className="what-to-do__title">Do not share this image yet.</p>
+              <ul className="what-to-do__list">
+                {getImageGuidance(findings).map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+              <p className="what-to-do__note">
+                PrivacyGuard can identify sensitive areas, but review the protected image before sharing.
+              </p>
+            </div>
+          )}
+        </>
       )}
 
-      {showTextProtect && (
-        <div className="result-action">
-          <button
-            type="button"
-            className="button button--primary button--lg"
-            onClick={onProtect}
-            disabled={protectBusy}
-          >
-            {protectBusy ? 'Protecting…' : 'Create Protected Copy'}
-          </button>
-          <p className="result-action__support">
-            Replace the detected sensitive information with safe placeholders while keeping the rest
-            of your text readable.
-          </p>
-        </div>
-      )}
-
-      {showImageGuidance && (
-        <div className="what-to-do">
-          <p className="what-to-do__title">Do not share this image yet.</p>
-          <ul className="what-to-do__list">
-            {getImageGuidance(findings).map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-          <p className="what-to-do__note">
-            PrivacyGuard can identify sensitive areas, but it does not provide a user-ready protected
-            image for sharing.
-          </p>
-        </div>
-      )}
-
-      {isProtected && !isImage && (
+      {screen === 'protected' && isProtected && !isImage && (
         <div className="protected-card">
           <h3 className="block__title">Protected copy</h3>
           <p className="protected-card__sentence">
@@ -212,13 +241,20 @@ export function ResultsPanel({
         </div>
       )}
 
-      {isProtected && isImage && (
+      {screen === 'protected' && isProtected && isImage && (
         <div className="protected-card">
-          <h3 className="block__title">How to make this image safe</h3>
+          <h3 className="block__title">Protected image preview</h3>
+          {protectedImagePreviewUrl && (
+            <img
+              className="protected-card__image"
+              src={protectedImagePreviewUrl}
+              alt="Protected image with sensitive areas covered"
+            />
+          )}
+          <h3 className="block__title">Review before sharing</h3>
           <ol className="protected-card__steps">
-            <li>Crop out the sensitive information, or securely blur/cover it.</li>
-            <li>Save the edited image as a new copy.</li>
-            <li>Upload the edited copy to PrivacyGuard and scan it again.</li>
+            <li>Check that every sensitive area is fully covered in this copy.</li>
+            <li>Scan the protected image to confirm nothing recognisable remains.</li>
             <li>Only share it after the final scan shows no sensitive information.</li>
           </ol>
           <div className="protected-card__actions">
@@ -234,31 +270,36 @@ export function ResultsPanel({
         </div>
       )}
 
-      {showRescanResult && rescanRisk && (
-        <div className={`final-check final-check--${rescanRisk.level}`}>
+      {screen === 'rescan' && showRescanResult && rescanRisk && (
+        <div className={`final-check final-check--${rescanNeedsOcrReview ? 'medium' : rescanRisk.level}`}>
           <h3 className="block__title">Final safety check</h3>
-          <div className={`final-check__card final-check__card--${rescanRisk.level}`}>
+          <div className={`final-check__card final-check__card--${rescanNeedsOcrReview ? 'medium' : rescanRisk.level}`}>
             <h4 className="final-check__label">
-              {rescanRisk.factors.length === 0 ? '✓ Safe to Share' : '! Still Needs Attention'}
+              {rescanRisk.verdict === 'SAFE_TO_SHARE' ? '✓ Safe to Share' : '! Still Needs Attention'}
             </h4>
             <p className="final-check__score">
-              {rescanRisk.score} <span className="final-check__out">/ 100</span>
+              {rescanNeedsOcrReview ? '—' : rescanRisk.score}
+              <span className="final-check__out">/ 100</span>
             </p>
             <p className="final-check__sentence">
-              {rescanRisk.factors.length === 0
+              {rescanRisk.verdict === 'SAFE_TO_SHARE'
                 ? 'No sensitive information was detected in the protected copy.'
-                : `${rescanRisk.factors.length} sensitive ${plural(rescanRisk.factors.length, 'item', 'items')} remain.`}
+                : rescanNeedsOcrReview
+                  ? 'No readable text was detected, so the protected image could not be verified.'
+                  : `${rescanRisk.factors.length} sensitive ${plural(rescanRisk.factors.length, 'item', 'items')} remain.`}
             </p>
             <p className="final-check__next">
-              {rescanRisk.factors.length === 0
+              {rescanRisk.verdict === 'SAFE_TO_SHARE'
                 ? 'This is the version you should share.'
-                : 'Protect the remaining information and scan again.'}
+                : rescanNeedsOcrReview
+                  ? 'Review the image manually before sharing.'
+                  : 'Protect the remaining information and scan again.'}
             </p>
           </div>
         </div>
       )}
 
-      <TechnicalDetails label="Technical details">
+      {screen === 'results' && <TechnicalDetails label="Technical details">
         <dl className="results__meta">
           <div>
             <dt>Source</dt>
@@ -336,7 +377,7 @@ export function ResultsPanel({
             </li>
           ))}
         </ul>
-      </TechnicalDetails>
+      </TechnicalDetails>}
     </div>
   );
 }
