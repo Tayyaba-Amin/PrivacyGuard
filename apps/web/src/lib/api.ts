@@ -148,6 +148,15 @@ export class ApiError extends Error {
 const RISK_CAVEAT =
   'Initial assessment of the text as submitted, before any redaction. It is not a guarantee that the content is safe to share.';
 
+/**
+ * Backend origin. In dev the Vite server proxies `/api` to this value, so a
+ * relative URL would also work, but using the absolute origin keeps dev and
+ * prod behaviour identical and makes the target obvious for each environment.
+ * `VITE_API_ORIGIN` is inlined at build time; the fallback matches the default
+ * in `apps/web/vite.config.ts`.
+ */
+const API_BASE = import.meta.env.VITE_API_ORIGIN ?? 'https://privacyguard-d7k0.onrender.com';
+
 type ErrorBody = {
   error?: {
     code?: string;
@@ -159,7 +168,7 @@ export async function analyzeText(text: string, signal?: AbortSignal): Promise<A
   let response: Response;
 
   try {
-    response = await fetch('/api/analyze/text', {
+    response = await fetch(`${API_BASE}/api/analyze/text`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
@@ -209,7 +218,7 @@ export async function protectText(text: string, signal?: AbortSignal): Promise<P
   let response: Response;
 
   try {
-    response = await fetch('/api/protect/text', {
+    response = await fetch(`${API_BASE}/api/protect/text`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
@@ -305,7 +314,7 @@ export async function rescanText(text: string, signal?: AbortSignal): Promise<Re
   let response: Response;
 
   try {
-    response = await fetch('/api/rescan/text', {
+    response = await fetch(`${API_BASE}/api/rescan/text`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
@@ -404,7 +413,7 @@ export async function analyzeImage(file: File, signal?: AbortSignal): Promise<An
   let response: Response;
 
   try {
-    response = await fetch('/api/analyze/image', {
+    response = await fetch(`${API_BASE}/api/analyze/image`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: base64 }),
@@ -435,7 +444,7 @@ export async function protectImage(file: File, signal?: AbortSignal): Promise<Pr
   let response: Response;
 
   try {
-    response = await fetch('/api/protect/image', {
+    response = await fetch(`${API_BASE}/api/protect/image`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: base64 }),
@@ -466,7 +475,7 @@ export async function rescanImage(file: File, signal?: AbortSignal): Promise<Res
   let response: Response;
 
   try {
-    response = await fetch('/api/rescan/image', {
+    response = await fetch(`${API_BASE}/api/rescan/image`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: base64 }),
