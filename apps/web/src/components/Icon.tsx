@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type IconName = 'dashboard' | 'text' | 'image' | 'history' | 'arrow' | 'shield';
+export type IconName = 'dashboard' | 'text' | 'image' | 'history' | 'arrow' | 'shield' | 'home';
 
 type IconProps = {
   name: IconName;
@@ -37,6 +37,11 @@ export function Icon({ name, size = 20 }: IconProps) {
       </>
     ),
     arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
+    home: (
+      <>
+        <path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2v-9Z" />
+      </>
+    ),
     shield: (
       <>
         <path d="M12 3 5 6v5.5c0 4.4 2.9 8.3 7 9.5 4.1-1.2 7-5.1 7-9.5V6l-7-3Z" />

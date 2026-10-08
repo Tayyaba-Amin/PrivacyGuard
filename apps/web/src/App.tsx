@@ -406,9 +406,11 @@ export function App() {
   const activeSection =
     view === 'dashboard' || view === 'history'
       ? view
-      : mode === 'image'
-        ? 'image'
-        : 'text';
+      : view === 'landing'
+        ? 'landing'
+        : mode === 'image'
+          ? 'image'
+          : 'text';
   const isInputView = view === 'text' || view === 'image';
   const isResultsView = view === 'text-results' || view === 'image-results';
   const hasAnalysis = analysis !== null;
@@ -429,8 +431,8 @@ export function App() {
         <button
           type="button"
           className="sidebar__brand"
-          onClick={() => handleNavigate('dashboard')}
-          aria-label="PrivacyGuard dashboard"
+          onClick={() => handleNavigate('landing')}
+          aria-label="PrivacyGuard landing page"
         >
           <span className="logo" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor">
@@ -444,6 +446,7 @@ export function App() {
         <nav className="sidebar__nav" aria-label="Main navigation">
           <p className="sidebar__label">Workspace</p>
           {([
+            ['landing', 'Landing page', 'home'],
             ['dashboard', 'Dashboard', 'dashboard'],
             ['text', 'Text Analysis', 'text'],
             ['image', 'Image Analysis', 'image'],
