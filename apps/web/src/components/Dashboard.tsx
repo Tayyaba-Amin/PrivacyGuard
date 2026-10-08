@@ -59,6 +59,9 @@ const CARDS: ActionCard[] = [
 ];
 
 export function Dashboard({ onNavigate, activity }: DashboardProps) {
+  const textScans = activity.filter((entry) => entry.type === 'text').length;
+  const imageScans = activity.filter((entry) => entry.type === 'image').length;
+
   return (
     <div className="dashboard">
       <section className="dashboard__welcome">
@@ -75,6 +78,20 @@ export function Dashboard({ onNavigate, activity }: DashboardProps) {
             <path d="m9.5 12.2 1.8 1.8 3.4-3.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
+      </section>
+      <section className="dashboard__stats" aria-label="Session overview">
+        <article className="dashboard__stat">
+          <span className="dashboard__stat-icon"><Icon name="shield" size={19} /></span>
+          <span className="dashboard__stat-copy"><strong>{activity.length}</strong><span>Recent checks</span></span>
+        </article>
+        <article className="dashboard__stat">
+          <span className="dashboard__stat-icon"><Icon name="text" size={19} /></span>
+          <span className="dashboard__stat-copy"><strong>{textScans}</strong><span>Text scans</span></span>
+        </article>
+        <article className="dashboard__stat">
+          <span className="dashboard__stat-icon"><Icon name="image" size={19} /></span>
+          <span className="dashboard__stat-copy"><strong>{imageScans}</strong><span>Image scans</span></span>
+        </article>
       </section>
       <section className="actions" aria-labelledby="actions-title">
         <div className="section-head">
