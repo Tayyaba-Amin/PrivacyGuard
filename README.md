@@ -122,7 +122,6 @@ npm run build     # production build
 ## Screenshots
 
 <details>
-<summary>Explore the app screens</summary>
 
 ### Landing page
 ![PrivacyGuard landing page](./docs/screenshots/landing.jpeg)
@@ -154,8 +153,10 @@ npm run build     # production build
 
 </details>
 
-## Privacy and limitations
+## Built for ForgeHacks
 
-PrivacyGuard is a demo, not a guarantee of safety. Image protection covers detected OCR regions;
-it does not reconstruct what was underneath. The application has no authentication or
-production-grade deployment hardening, so do not deploy it publicly as-is.
+Built by **Tayyaba Amin** and **Sawaira Fareed** for the **ForgeHacks Hackathon**, **AI + Cybersecurity** track.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.
