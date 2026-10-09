@@ -121,8 +121,6 @@ npm run build     # production build
 
 ## Screenshots
 
-<details>
-
 ### Landing page
 ![PrivacyGuard landing page](./docs/screenshots/landing.jpeg)
 
@@ -151,7 +149,6 @@ npm run build     # production build
 ### History
 ![Session history](./docs/screenshots/history.jpeg)
 
-</details>
 
 ## Built for ForgeHacks
 
