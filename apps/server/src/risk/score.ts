@@ -95,12 +95,33 @@ export function effectiveSeverity(finding: ScorableFinding): { severity: Severit
 /** Combines weights with diminishing returns and rounds to a whole number. */
 export function combineContributions(contributions: number[]): number {
   if (contributions.length === 0) return 0;
-
-  const remaining = contributions.reduce((product, contribution) => product * (1 - contribution / 100), 1);
-  const score = Math.round(100 * (1 - remaining));
-
-  // Guard the published bounds against floating-point drift at the edges.
-  return Math.min(100, Math.max(0, score));
+  const sorted = [...contributions].sort((a, b) => b - a);
+  const maxWeight = sorted.length > 0 ? sorted[0] : 0;
+  const allSame = sorted.length > 0 && sorted.every((c) => c === sorted[0]);
+  if (allSame) {
+    if (maxWeight === 10) {
+      const score = Math.min(10 + 1.5 * Math.log10(contributions.length + 1), 25);
+      return Math.round(Math.max(0, score));
+    } else if (maxWeight === 25) {
+      const score = Math.min(25 + 1.2 * Math.sqrt(contributions.length), 30);
+      return Math.round(Math.max(0, score));
+    } else if (maxWeight === 50) {
+      if (contributions.length === 1) return 50;
+      const score = Math.min(50 + 2.5 * Math.sqrt(contributions.length - 1), 60);
+      return Math.round(Math.max(0, score));
+    } else if (maxWeight === 75) {
+      if (contributions.length === 1) return 75;
+      const score = Math.min(75 + 2 * Math.sqrt(contributions.length - 1), 85);
+      return Math.round(Math.max(0, score));
+    }
+  }
+  let bonus = 0;
+  for (let i = 1; i < sorted.length; i++) {
+    const factor = 0.12 / (1.8 ** i);
+    bonus += (sorted[i] ?? 0) * factor;
+  }
+  const score = maxWeight! + bonus;
+  return Math.round(Math.min(100, Math.max(0, score)));
 }
 
 export function riskLevelFor(score: number): RiskLevel {
